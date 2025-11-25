@@ -14,6 +14,9 @@ type Highscore = {
     time: number;
     timestamp: number;
 }
+const basePath = process.env.NODE_ENV === 'production' 
+  ? '/bombpartylocal' 
+  : '';
 
 export default function Page() {
     const router = useRouter();
@@ -73,13 +76,13 @@ export default function Page() {
                 setError("");
                 
                 // Fetch Words
-                const wordRes = await fetch("/assets/wordlist.txt");
+                const wordRes = await fetch(`${basePath}/assets/wordlist.txt`);
                 if (!wordRes.ok) throw new Error("Could not find wordlist.txt");
                 const wordText = await wordRes.text();
                 const wordsData = wordText.split(/\r?\n/);
 
                 // Fetch Syllables
-                const syllRes = await fetch("/assets/syllables.json");
+                const syllRes = await fetch(`${basePath}/assets/syllables.json`);
                 if (!syllRes.ok) throw new Error("Could not find syllables.json");
                 const syllablesData: RawSyllableData = await syllRes.json();
 
