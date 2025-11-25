@@ -1,7 +1,7 @@
 "use client";
 
 import RadialTimer from "@/components/radial-timer";
-import { use, useEffect, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ const basePath = process.env.NODE_ENV === 'production'
   ? '/bombpartylocal' 
   : '';
 
-export default function Page() {
+function GameLogic() {
+    
     const router = useRouter();
     const searchParams = useSearchParams();
     
@@ -258,4 +259,13 @@ export default function Page() {
             </div>
         </div>
     );
+}
+
+//wrapper to enable suspense
+export default function Page() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center text-xl">Loading...</div>}>
+            <GameLogic />
+        </Suspense>
+    )
 }
