@@ -7,18 +7,20 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-// Define the shape of your JSON file
 type RawSyllableData = Record<string, string[]>;
+type Highscore = {
+    streak: number;
+    difficulty: number;
+    time: number;
+    timestamp: number;
+}
 
 export default function Page() {
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    // 1. Get Settings from URL
-    // Default to 2000 min words if missing
     const minWordCount = parseInt(searchParams.get("difficulty") || "2000"); 
-    // Default to 10 seconds if missing
-    const timerDuration = parseInt(searchParams.get("time") || "10");
+    const timerDuration = parseInt(searchParams.get("time") || "8");
 
     const [words, setWords] = useState<string[]>([]);
     const [rawSyllableData, setRawSyllableData] = useState<RawSyllableData>({});
@@ -29,6 +31,28 @@ export default function Page() {
     const [currentSyllable, setCurrentSyllable] = useState("");
     const [input, setInput] = useState('');
     const [score, setScore] = useState(0);
+    const [highScore, setHighScore] = useState(0);
+    const [usedWords, setUsedWords] = useState<Set<string>>(new Set());
+
+    const [flashError, setFlashError] = useState(false);
+
+    const getStorageKey = (diff: number, time: number) => `bp_hs_${diff}_${time}`;
+
+    //get high score from local storage
+    useEffect(() => {
+        const key = getStorageKey(minWordCount, timerDuration);
+        const storedHighScore = localStorage.getItem(key);
+        if (storedHighScore) {
+            try {
+                const parsed : Highscore = JSON.parse(storedHighScore);
+                setHighScore(parsed.streak);
+            } catch (e) {
+                console.error("Failed to parse high score from localStorage", e);
+            } 
+        }
+    }, [minWordCount, timerDuration]);
+
+    
 
     useEffect( () => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -123,29 +147,88 @@ export default function Page() {
         }
     };
 
+    //runs when game over
     const handleTimerComplete = () => {
+        setFlashError(true);
+        setUsedWords(new Set());
+        setTimeout(() => setFlashError(false), 100);
         getNewSyllable();
+        if (score > highScore) {
+            const newEntry : Highscore = {
+                streak: score,
+                difficulty: minWordCount,
+                time: timerDuration,
+                timestamp: Date.now()
+            };
+            setHighScore(score);
+            localStorage.setItem(getStorageKey(minWordCount, timerDuration), JSON.stringify(newEntry));
+        }
         setScore(0);
     };
 
     const checkInput = () => {
         const word = input.trim().toLowerCase();
-        if (word.length > 0 && words.includes(word) && word.includes(currentSyllable.toLowerCase())) {
+        if (word.length > 0 
+                && words.includes(word) 
+                && word.includes(currentSyllable.toLowerCase())) {
+
+            if (usedWords.has(word)) {
+                setFlashError(true);
+                setTimeout(() => setFlashError(false), 100);
+                return;
+            }
             setScore(score + 1);
             getNewSyllable();
-            setInput(""); 
+            setUsedWords(prev => new Set(prev).add(word));
+        } else {
+            setFlashError(true);
+            setTimeout(() => setFlashError(false), 10);
         }
+        setInput(""); 
     };
 
     return (
         <div className="flex justify-center bg-gray-50 dark:bg-zinc-950">
             <span className="absolute top-4 left-4">
                 <Link href="/">
-                    <Button variant="ghost">← Back (Escape)</Button>
+                    <Button variant="ghost" className="italic">← Back (Escape)</Button>
                 </Link>
             </span>
+
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 w-64 h-[70vh] hidden xl:block pointer-events-none animate-in slide-in-from-right-2 fade-in duration-300">
+                <div className="p-4 h-full flex flex-col pointer-events-auto">
+                    <div className="flex justify-end items-end border-b border-gray-200 dark:border-zinc-800 pb-2 mb-2">
+                        <h3 className="text-sm text-right font-bold text-gray-500 uppercase tracking-wider">
+                            Used Words
+                        </h3>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
+                        <ul className="flex flex-col gap-2">
+                            {Array.from(usedWords).reverse().map((word) => (
+                                <li 
+                                    key={word} 
+                                    className="text-lg text-right font-medium text-gray-700 dark:text-gray-300 animate-in slide-in-from-left-2 fade-in duration-300"
+                                >
+                                    {word}
+                                </li>
+                            ))}
+                            {usedWords.size === 0 && (
+                                <li className="text-sm text-gray-400 italic text-center mt-10 opacity-50">
+                                    Words you type will appear here...
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <div className="flex flex-col justify-center items-center h-screen gap-6">
                 
+                <p className="text-lg font-bold text-gray-700 dark:text-gray-400">
+                    Highest Streak: {highScore}
+                </p>
+
                 <p className="text-2xl font-bold text-gray-700 dark:text-gray-200">
                     Streak: {score}
                 </p>
@@ -154,6 +237,7 @@ export default function Page() {
                     onComplete={handleTimerComplete} 
                     syllable={currentSyllable}
                     duration={timerDuration} 
+                    isError={flashError}
                 />
                 
                 <input

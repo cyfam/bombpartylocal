@@ -1,19 +1,24 @@
 import { useEffect, useState, useRef } from "react";
 
 interface RadialTimerProps {
-    onComplete?: () => void; 
+    onComplete?: () => void;
     duration?: number;
     syllable: string;
+    isError?: boolean; 
 }
 
-export default function RadialTimer({ onComplete, duration = 10, syllable }: RadialTimerProps) {
+export default function RadialTimer({ onComplete, duration = 10, syllable, isError = false }: RadialTimerProps) {
     const [progress, setProgress] = useState(100);
     const [isRunning, setIsRunning] = useState(false);
     const animationRef = useRef(0);
     const startTimeRef = useRef(0);
-    const [isError, setIsError] = useState(false);
 
-    // Circle config
+    const onCompleteRef = useRef(onComplete);
+
+    useEffect(() => {
+        onCompleteRef.current = onComplete;
+    }, [onComplete]);
+
     const radius = 80;
     const strokeWidth = 10;
     const normalizedRadius = radius - strokeWidth / 2;
@@ -26,7 +31,7 @@ export default function RadialTimer({ onComplete, duration = 10, syllable }: Rad
     };
 
     useEffect(() => {
-        if (syllable) {
+        if (syllable && syllable.length > 0) {
             handleStart();
         }
     }, [syllable]);
@@ -63,7 +68,7 @@ export default function RadialTimer({ onComplete, duration = 10, syllable }: Rad
     const handleComplete = () => {
         setIsRunning(false);
         // Notify parent
-        if (onComplete) onComplete();
+        if (onCompleteRef.current) onCompleteRef.current();
     };
 
     const strokeDashoffset = circumference - (progress / 100) * circumference;
@@ -96,8 +101,11 @@ export default function RadialTimer({ onComplete, duration = 10, syllable }: Rad
                         cy={radius}
                     />
                 </svg>
-                {/* Optional: Show time in center */}
-                <div className="absolute inset-0 flex items-center justify-center text-xl font-bold text-white">
+                <div className={`
+                        absolute inset-0 flex items-center justify-center text-xl font-bold 
+                        transition-colors 
+                        ${isError ? "text-red-500 duration-0" : "text-gray-700 dark:text-white duration-500"}
+                    `}>
                     {syllable}
                 </div>
             </div>
