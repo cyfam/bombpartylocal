@@ -77,7 +77,7 @@ export default function RadialTimer({ onComplete, duration = 10, syllable }: Rad
                     className="-rotate-90"
                 >
                     <circle
-                        stroke="#71717a"
+                        stroke="#000000"
                         fill="transparent"
                         strokeWidth={strokeWidth}
                         r={normalizedRadius}
