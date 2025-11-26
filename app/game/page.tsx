@@ -39,6 +39,7 @@ function GameLogic() {
     const [usedWords, setUsedWords] = useState<Set<string>>(new Set());
 
     const [flashError, setFlashError] = useState(false);
+    const [ended, setEnded] = useState(false);
 
     const getStorageKey = (diff: number, time: number) => `bp_hs_${diff}_${time}`;
 
@@ -141,7 +142,27 @@ function GameLogic() {
     const handleInputChange = (event : any) => setInput(event.target.value);
 
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') checkInput();
+        if (e.key === 'Enter') {
+            if (ended) {
+                setEnded(false);
+            
+                setUsedWords(new Set());
+                getNewSyllable();
+                if (score > highScore) {
+                    const newEntry : Highscore = {
+                        streak: score,
+                        difficulty: minWordCount,
+                        time: timerDuration,
+                        timestamp: Date.now()
+                    };
+                    setHighScore(score);
+                    localStorage.setItem(getStorageKey(minWordCount, timerDuration), JSON.stringify(newEntry));
+                }
+                setScore(0);
+            } else {
+                checkInput();
+            }
+        }
     };
 
     function getNewSyllable() {
@@ -154,20 +175,9 @@ function GameLogic() {
     //runs when game over
     const handleTimerComplete = () => {
         setFlashError(true);
-        setUsedWords(new Set());
-        setTimeout(() => setFlashError(false), 100);
-        getNewSyllable();
-        if (score > highScore) {
-            const newEntry : Highscore = {
-                streak: score,
-                difficulty: minWordCount,
-                time: timerDuration,
-                timestamp: Date.now()
-            };
-            setHighScore(score);
-            localStorage.setItem(getStorageKey(minWordCount, timerDuration), JSON.stringify(newEntry));
-        }
-        setScore(0);
+        setEnded(true);
+
+        //wait for enter key before resetting
     };
 
     const checkInput = () => {
@@ -256,6 +266,14 @@ function GameLogic() {
                     autoFocus
                     autoComplete="off"
                 />
+
+                {ended && (
+                    <div className="mt-4 text-center">
+                        <p className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                            Enter to Restart.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );
