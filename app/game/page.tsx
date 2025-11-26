@@ -145,7 +145,7 @@ function GameLogic() {
         if (e.key === 'Enter') {
             if (ended) {
                 setEnded(false);
-            
+                setFlashError(false);
                 setUsedWords(new Set());
                 getNewSyllable();
                 if (score > highScore) {
@@ -167,7 +167,10 @@ function GameLogic() {
 
     function getNewSyllable() {
         if (playableSyllables.length > 0) {
-            const randomIndex = Math.floor(Math.random() * playableSyllables.length);
+            let randomIndex = Math.floor(Math.random() * playableSyllables.length);
+            while (playableSyllables[randomIndex] === currentSyllable) {
+                randomIndex = Math.floor(Math.random() * playableSyllables.length);
+            }
             setCurrentSyllable(playableSyllables[randomIndex]);
         }
     };
@@ -269,7 +272,7 @@ function GameLogic() {
 
                 {ended && (
                     <div className="mt-4 text-center">
-                        <p className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                        <p className="text-sm italic text-gray-700 dark:text-gray-200 mb-2">
                             Enter to Restart.
                         </p>
                     </div>
